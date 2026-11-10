@@ -524,8 +524,12 @@ async function main(): Promise<void> {
     owner => isMandatory() || updateOverlays.input(owner).blocked)
   const backend = new DesktopBackendController((onFailure) => {
     const hostInspectPort = developmentHostInspectPort(development)
+    // SiriusX never launches the Host with upstream telemetry enabled. The
+    // telemetry-off plugin disables the exporter/log rows; this launch guard
+    // also makes the upstream session-telemetry row inert before profile
+    // recomposition or a future bundle regression can construct a transport.
     const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
-      hostInspectPort, { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion() }, onFailure,
+      hostInspectPort, { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion(), DSH_TELEMETRY_DISABLED: '1' }, onFailure,
       primaryRuntime,
       resources, (next) => { platformView.setSession(next) }, (record) => {
         operationJournal ??= new OperationJournal(join(app.getPath('userData'), 'plugin-operations'), {
