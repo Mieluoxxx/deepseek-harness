@@ -10,6 +10,7 @@ export interface EnterpriseConfig {
   readonly ssoTenantClaim?: string
   readonly modelGatewayUrl?: string
   readonly botApiUrl?: string
+  readonly bundledPluginsDir?: string
 }
 
 const ENV_KEYS = {
@@ -20,6 +21,7 @@ const ENV_KEYS = {
   ssoTenantClaim: 'SIRIUSX_SSO_TENANT_CLAIM',
   modelGatewayUrl: 'SIRIUSX_MODEL_GATEWAY_URL',
   botApiUrl: 'SIRIUSX_BOT_API_URL',
+  bundledPluginsDir: 'SIRIUSX_BUNDLED_PLUGINS_DIR',
 } as const
 
 function stringValue(value: unknown): string | undefined {
@@ -58,6 +60,7 @@ export function loadEnterpriseConfig(
   const ssoTenantClaim = pick(ENV_KEYS.ssoTenantClaim, 'ssoTenantClaim')
   const modelGatewayUrl = pick(ENV_KEYS.modelGatewayUrl, 'modelGatewayUrl')
   const botApiUrl = pick(ENV_KEYS.botApiUrl, 'botApiUrl')
+  const bundledPluginsDir = pick(ENV_KEYS.bundledPluginsDir, 'bundledPluginsDir')
   return {
     enabled,
     ...(ssoIssuer === undefined ? {} : { ssoIssuer }),
@@ -66,6 +69,7 @@ export function loadEnterpriseConfig(
     ...(ssoTenantClaim === undefined ? {} : { ssoTenantClaim }),
     ...(modelGatewayUrl === undefined ? {} : { modelGatewayUrl }),
     ...(botApiUrl === undefined ? {} : { botApiUrl }),
+    ...(bundledPluginsDir === undefined ? {} : { bundledPluginsDir }),
   }
 }
 
@@ -80,5 +84,6 @@ export function enterpriseHostEnvironment(config: EnterpriseConfig, env: NodeJS.
     ...(config.ssoTenantClaim === undefined ? {} : { SIRIUSX_SSO_TENANT_CLAIM: config.ssoTenantClaim }),
     ...(config.modelGatewayUrl === undefined ? {} : { SIRIUSX_MODEL_GATEWAY_URL: config.modelGatewayUrl }),
     ...(config.botApiUrl === undefined ? {} : { SIRIUSX_BOT_API_URL: config.botApiUrl }),
+    ...(config.bundledPluginsDir === undefined ? {} : { SIRIUSX_BUNDLED_PLUGINS_DIR: config.bundledPluginsDir }),
   }
 }
