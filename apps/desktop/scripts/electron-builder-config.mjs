@@ -166,7 +166,6 @@ export function createElectronBuilderConfig(
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
       { from: fileURLToPath(new URL('../resources/enterprise.json', import.meta.url)), to: 'enterprise.json' },
-      { from: fileURLToPath(new URL('../resources/enterprise-plugins.json', import.meta.url)), to: 'enterprise-plugins.json' },
       ...(process.env.SIRIUSX_PLUGIN_BUNDLE === undefined ? [] : [{ from: process.env.SIRIUSX_PLUGIN_BUNDLE, to: 'siriusx-plugins.tar.gz' }]),
       { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
       // Windows tray bitmaps; macOS keeps the Dock and ships no menu bar icon.
