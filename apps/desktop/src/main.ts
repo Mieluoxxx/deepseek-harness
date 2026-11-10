@@ -27,6 +27,7 @@ import {
   type MenuItemConstructorOptions,
 } from 'electron'
 import { resolveDesktopPaths } from './paths.ts'
+import { enterpriseHostEnvironment, loadEnterpriseConfig } from './enterprise.ts'
 import { DesktopProjectManager } from './project-manager.ts'
 import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
 import { DesktopPlatformView, PLATFORM_IPC, platformBounds } from './platform-view.ts'
@@ -375,6 +376,7 @@ async function main(): Promise<void> {
   const journalDirectory = process.env.DSH_DESKTOP_UPDATE_JOURNAL_DIR
   const updateJournal = journalDirectory === undefined ? undefined : new DesktopUpdateJournal(journalDirectory, app.getVersion())
   const resources = runtimeResources()
+  const enterprise = loadEnterpriseConfig(app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources'))
   const paths = resolveDesktopPaths()
   const development = !app.isPackaged
   const primaryRuntime = development
@@ -528,8 +530,13 @@ async function main(): Promise<void> {
     // telemetry-off plugin disables the exporter/log rows; this launch guard
     // also makes the upstream session-telemetry row inert before profile
     // recomposition or a future bundle regression can construct a transport.
+    const hostEnvironmentForLaunch = enterpriseHostEnvironment(enterprise, {
+      ...hostEnvironment,
+      DSH_CLIENT_VERSION: desktopClientVersion(),
+      DSH_TELEMETRY_DISABLED: '1',
+    })
     const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
-      hostInspectPort, { ...hostEnvironment, DSH_CLIENT_VERSION: desktopClientVersion(), DSH_TELEMETRY_DISABLED: '1' }, onFailure,
+      hostInspectPort, hostEnvironmentForLaunch, onFailure,
       primaryRuntime,
       resources, (next) => { platformView.setSession(next) }, (record) => {
         operationJournal ??= new OperationJournal(join(app.getPath('userData'), 'plugin-operations'), {
@@ -567,7 +574,7 @@ async function main(): Promise<void> {
           if (state.status === 'credential-stored' && attempt?.phase === 'succeeded' && welcomeWindow !== undefined) void enterWorkspace({ activate: false }).catch(() => undefined)
           if (previousAccountStatus === 'credential-stored' && state.status === 'signed-out') {
             void readWelcomeState().then(async (value) => {
-              if (needsWelcome(value) && !quitting) {
+              if (needsWelcome(value, enterprise.enabled) && !quitting) {
                 enteredWorkspace = false
                 await showWelcome()
                 if (welcomeWindow !== undefined && !welcomeWindow.isDestroyed()) welcomeWindow.webContents.send(WELCOME_IPC.state, state)
@@ -580,7 +587,7 @@ async function main(): Promise<void> {
           // The stream reconnects; a transport failure does not change account state.
         }, () => {
           void readWelcomeState().then(async (value) => {
-            if (!needsWelcome(value) || quitting) return
+            if (!needsWelcome(value, enterprise.enabled) || quitting) return
             pendingWelcomeNotice = 'session-expired'
             enteredWorkspace = false
             await showWelcome()
@@ -1407,7 +1414,7 @@ async function main(): Promise<void> {
           return { ok: true }
         },
         skip: enterWorkspace,
-      })
+      }, enterprise.enabled)
       const window = welcomeWindow
       window.once('closed', () => {
         void welcomeBackend?.account.state().then((state) => {
@@ -1436,7 +1443,7 @@ async function main(): Promise<void> {
     writeDesktopLocaleCache(app.getPath('userData'), locale.id)
     windowsLanguage = locale.id
     refreshApplicationMenu()
-    if (!enteredWorkspace && needsWelcome({ loggedIn: state.loggedIn, hasApiKey: state.hasApiKey })) {
+    if (!enteredWorkspace && needsWelcome({ loggedIn: state.loggedIn, hasApiKey: state.hasApiKey }, enterprise.enabled)) {
       // A later login must retain its own activation policy instead of replaying startup focus.
       raiseAfterUpdate = false
       await showWelcome()

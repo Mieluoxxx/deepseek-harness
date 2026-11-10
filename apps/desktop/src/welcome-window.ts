@@ -13,7 +13,7 @@ import { WELCOME_IPC, type WelcomeOperations } from './welcome-api.ts'
  * @param locale - shell-owned localized copy.
  * @returns sandboxed window options with a locale-only preload.
  */
-export function welcomeWindowOptions(platform: NodeJS.Platform, locale: DesktopLocale): BrowserWindowConstructorOptions {
+export function welcomeWindowOptions(platform: NodeJS.Platform, locale: DesktopLocale, enterprise = false): BrowserWindowConstructorOptions {
   return {
     width: 600,
     height: 700,
@@ -38,7 +38,7 @@ export function welcomeWindowOptions(platform: NodeJS.Platform, locale: DesktopL
     } as const : {}),
     webPreferences: {
       preload: fileURLToPath(new URL('./preload-welcome.cjs', import.meta.url)),
-      additionalArguments: [`--dsh-welcome-locale=${locale.id}`],
+      additionalArguments: [`--dsh-welcome-locale=${locale.id}`, ...(enterprise ? ['--dsh-welcome-enterprise=1'] : [])],
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
@@ -56,8 +56,8 @@ let disposeActiveHandlers: (() => void) | undefined
  * @param operations - credential write and this-launch-only skip actions.
  * @returns the visible window; a failed load destroys it before rejecting.
  */
-export async function openWelcomeWindow(locale: DesktopLocale, operations: WelcomeOperations): Promise<BrowserWindow> {
-  const options = welcomeWindowOptions(process.platform, locale)
+export async function openWelcomeWindow(locale: DesktopLocale, operations: WelcomeOperations, enterprise = false): Promise<BrowserWindow> {
+  const options = welcomeWindowOptions(process.platform, locale, enterprise)
   const window = new BrowserWindow(options)
   disposeActiveHandlers?.()
   let active = true

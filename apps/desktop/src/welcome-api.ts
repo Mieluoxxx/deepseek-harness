@@ -55,6 +55,8 @@ export interface WelcomeOperations {
 
 /** The renderer receives localized copy, login operations, and safe account snapshots. */
 export type WelcomeApi = DesktopLocale & WelcomeOperations & {
+  /** Enterprise mode hides personal API-key/skip entry points. */
+  readonly enterprise: boolean
   /** @param listener - safe account snapshot recipient. @returns subscription disposer. */
   onAccountState(listener: (state: AccountView) => void): () => void
 }
@@ -70,6 +72,7 @@ export interface WelcomeAuthentication {
  * @param authentication - current account and independently stored API-key facts.
  * @returns true only when neither authentication route is configured.
  */
-export function needsWelcome(authentication: WelcomeAuthentication): boolean {
-  return !authentication.loggedIn && !authentication.hasApiKey
+export function needsWelcome(authentication: WelcomeAuthentication, enterprise = false): boolean {
+  // Enterprise mode is login-only. Personal mode retains the API-key/skip path.
+  return enterprise ? !authentication.loggedIn : !authentication.loggedIn && !authentication.hasApiKey
 }
