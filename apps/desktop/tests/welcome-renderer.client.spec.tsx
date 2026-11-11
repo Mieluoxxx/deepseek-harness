@@ -15,7 +15,6 @@ function mount(language = 'zh-CN', takeNotice = vi.fn<() => Promise<WelcomeNotic
   cleanup()
   const stopAccount = vi.fn()
   const api = {
-    enterprise: false,
     takeNotice,
     analytics: vi.fn(async (_event: string, _attributes: object) => {}),
     analyticsEnabled: async () => true,
