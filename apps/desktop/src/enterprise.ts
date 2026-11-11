@@ -9,6 +9,8 @@ export interface EnterpriseConfig {
   readonly ssoJwksUri?: string
   readonly ssoTenantClaim?: string
   readonly modelGatewayUrl?: string
+  readonly controlPlaneUrl?: string
+  readonly enterpriseModelProvider?: string
   readonly botApiUrl?: string
   readonly bundledPluginsDir?: string
 }
@@ -20,6 +22,8 @@ const ENV_KEYS = {
   ssoJwksUri: 'SIRIUSX_SSO_JWKS_URI',
   ssoTenantClaim: 'SIRIUSX_SSO_TENANT_CLAIM',
   modelGatewayUrl: 'SIRIUSX_MODEL_GATEWAY_URL',
+  controlPlaneUrl: 'SIRIUSX_CONTROL_PLANE_URL',
+  enterpriseModelProvider: 'SIRIUSX_ENTERPRISE_MODEL_PROVIDER',
   botApiUrl: 'SIRIUSX_BOT_API_URL',
   bundledPluginsDir: 'SIRIUSX_BUNDLED_PLUGINS_DIR',
 } as const
@@ -59,6 +63,8 @@ export function loadEnterpriseConfig(
   const ssoJwksUri = pick(ENV_KEYS.ssoJwksUri, 'ssoJwksUri')
   const ssoTenantClaim = pick(ENV_KEYS.ssoTenantClaim, 'ssoTenantClaim')
   const modelGatewayUrl = pick(ENV_KEYS.modelGatewayUrl, 'modelGatewayUrl')
+  const controlPlaneUrl = pick(ENV_KEYS.controlPlaneUrl, 'controlPlaneUrl')
+  const enterpriseModelProvider = pick(ENV_KEYS.enterpriseModelProvider, 'enterpriseModelProvider')
   const botApiUrl = pick(ENV_KEYS.botApiUrl, 'botApiUrl')
   const bundledPluginsDir = pick(ENV_KEYS.bundledPluginsDir, 'bundledPluginsDir')
   return {
@@ -68,6 +74,8 @@ export function loadEnterpriseConfig(
     ...(ssoJwksUri === undefined ? {} : { ssoJwksUri }),
     ...(ssoTenantClaim === undefined ? {} : { ssoTenantClaim }),
     ...(modelGatewayUrl === undefined ? {} : { modelGatewayUrl }),
+    ...(controlPlaneUrl === undefined ? {} : { controlPlaneUrl }),
+    ...(enterpriseModelProvider === undefined ? {} : { enterpriseModelProvider }),
     ...(botApiUrl === undefined ? {} : { botApiUrl }),
     ...(bundledPluginsDir === undefined ? {} : { bundledPluginsDir }),
   }
@@ -83,6 +91,8 @@ export function enterpriseHostEnvironment(config: EnterpriseConfig, env: NodeJS.
     ...(config.ssoJwksUri === undefined ? {} : { SIRIUSX_SSO_JWKS_URI: config.ssoJwksUri }),
     ...(config.ssoTenantClaim === undefined ? {} : { SIRIUSX_SSO_TENANT_CLAIM: config.ssoTenantClaim }),
     ...(config.modelGatewayUrl === undefined ? {} : { SIRIUSX_MODEL_GATEWAY_URL: config.modelGatewayUrl }),
+    ...(config.controlPlaneUrl === undefined ? {} : { SIRIUSX_CONTROL_PLANE_URL: config.controlPlaneUrl }),
+    ...(config.enterpriseModelProvider === undefined ? {} : { SIRIUSX_ENTERPRISE_MODEL_PROVIDER: config.enterpriseModelProvider }),
     ...(config.botApiUrl === undefined ? {} : { SIRIUSX_BOT_API_URL: config.botApiUrl }),
     ...(config.bundledPluginsDir === undefined ? {} : { SIRIUSX_BUNDLED_PLUGINS_DIR: config.bundledPluginsDir }),
   }

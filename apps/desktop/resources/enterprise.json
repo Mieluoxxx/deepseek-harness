@@ -1,5 +1,7 @@
 {
   "enabled": false,
   "bundledPluginsDir": "plugins",
+  "controlPlaneUrl": "http://127.0.0.1:4320",
+  "enterpriseModelProvider": "siriusx",
   "plugins": []
 }
