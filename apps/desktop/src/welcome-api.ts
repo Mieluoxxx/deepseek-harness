@@ -56,7 +56,7 @@ export interface WelcomeOperations {
 /** The renderer receives localized copy, login operations, and safe account snapshots. */
 export type WelcomeApi = DesktopLocale & WelcomeOperations & {
   /** Enterprise mode hides personal API-key/skip entry points. */
-  readonly enterprise: boolean
+  readonly enterprise?: boolean
   /** @param listener - safe account snapshot recipient. @returns subscription disposer. */
   onAccountState(listener: (state: AccountView) => void): () => void
 }
