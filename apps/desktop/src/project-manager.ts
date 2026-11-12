@@ -78,13 +78,14 @@ export class DesktopProjectManager {
 
   /**
    * Load application metadata and prepare the external plugin profile without installing packages.
+   * @param extraBundles - enterprise bundles to mount after the web template.
    */
-  async applyRelease(): Promise<void> {
+  async applyRelease(extraBundles: readonly string[] = []): Promise<void> {
     await this.withLock(() => {
       // Validation only: an unreadable or mismatched runtime descriptor stops preparation before the Host starts.
       readDesktopRuntime(this.runtime.dsh)
       migrateProfileSettings(this.paths.profile)
-      createPluginProfile(this.paths.profile)
+      createPluginProfile(this.paths.profile, extraBundles)
       removeLinkProjections(this.paths.profile)
     })
   }
@@ -169,7 +170,13 @@ export function createDevelopmentProjectMetadata(projectDir: string, release: De
   writeFileSync(join(projectDir, 'pnpm-workspace.yaml'), workspaceFile(), { mode: 0o600 })
 }
 
-/** Create the first external plugin profile without running a package manager. */
-export function createPluginProfile(projectDir: string): void {
-  initProfile(projectDir, WEB_PROFILE.bundles)
+/**
+ * Create the first external plugin profile without running a package manager.
+ * @param projectDir - Profile directory to initialize.
+ * @param extraBundles - Enterprise bundles to mount after the web template, in
+ *   the order `enterprise.json` lists them. Each must already be resolvable
+ *   from the installation tree; this only records the selection.
+ */
+export function createPluginProfile(projectDir: string, extraBundles: readonly string[] = []): void {
+  initProfile(projectDir, [...WEB_PROFILE.bundles, ...extraBundles])
 }

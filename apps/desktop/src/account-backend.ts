@@ -7,8 +7,12 @@ import type { AccountClientMetadata, AccountView, SignInAttemptId } from '@deeps
 /** Authenticated unary caller shared with native onboarding. */
 export type AccountInvoke = (request: { namespace: string; method: string; args: Record<string, unknown> }) => Promise<unknown>
 
-/** Decode the UI-safe state received across HTTP or WebSocket. @param value - wire value. @returns account projection. */
-export function accountView(value: unknown): AccountView {
+/** Decode the UI-safe state received across HTTP or WebSocket.
+ * @param value - wire value.
+ * @param trustedOrigins - plain-HTTP origins the login browser may open, beyond loopback.
+ * @returns account projection.
+ */
+export function accountView(value: unknown, trustedOrigins: readonly string[] = []): AccountView {
   if (typeof value !== 'object' || value === null || !('status' in value)
     || !['signed-out', 'credential-stored'].includes(String(value.status)) || !('attempt' in value)) {
     throw new Error('desktop account: invalid state')
@@ -18,8 +22,8 @@ export function accountView(value: unknown): AccountView {
     || !('topUpUrl' in value.links) || typeof value.links.topUpUrl !== 'string') {
     throw new Error('desktop account: invalid platform links')
   }
-  validateBrowserDestination(value.links.usageUrl)
-  validateBrowserDestination(value.links.topUpUrl)
+  validateBrowserDestination(value.links.usageUrl, trustedOrigins)
+  validateBrowserDestination(value.links.topUpUrl, trustedOrigins)
   const attempt = value.attempt
   if (attempt !== null && (typeof attempt !== 'object' || !('id' in attempt) || typeof attempt.id !== 'string'
     || !('phase' in attempt) || !['initializing', 'waiting-browser', 'exchanging', 'committing', 'succeeded', 'cancelled', 'expired', 'failed'].includes(String(attempt.phase))
@@ -29,7 +33,7 @@ export function accountView(value: unknown): AccountView {
     throw new Error('desktop account: invalid attempt')
   }
   if (attempt !== null && 'authorizeUrl' in attempt) {
-    validateBrowserDestination(String(attempt.authorizeUrl))
+    validateBrowserDestination(String(attempt.authorizeUrl), trustedOrigins)
   }
   const parsed = value as AccountView
   return {
@@ -44,11 +48,20 @@ export function accountView(value: unknown): AccountView {
   }
 }
 
-/** Only HTTP loopback or HTTPS destinations can leave the native app. */
-function validateBrowserDestination(value: string): void {
+/**
+ * Refuse a destination the native browser must not open.
+ *
+ * HTTPS is always allowed. Plain HTTP is allowed only for loopback or for an
+ * origin the deployment named, which is what lets an internal IdP without TLS
+ * complete a sign-in without opening arbitrary plain-HTTP navigation.
+ * @param value - destination URL.
+ * @param trustedOrigins - plain-HTTP origins the deployment vouches for.
+ */
+function validateBrowserDestination(value: string, trustedOrigins: readonly string[] = []): void {
   const url = new URL(value)
   const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
-  if (url.username || url.password || !(url.protocol === 'https:' || (loopback && url.protocol === 'http:'))) {
+  const plainHttpAllowed = loopback || trustedOrigins.includes(url.origin)
+  if (url.username || url.password || !(url.protocol === 'https:' || (plainHttpAllowed && url.protocol === 'http:'))) {
     throw new Error('desktop account: invalid browser destination')
   }
 }
@@ -81,11 +94,14 @@ export interface DesktopAccountBackend {
  * @param origin - Host Web origin.
  * @param invoke - validated unary RPC caller.
  * @param cookie - Host authentication Cookie header for the account WebSocket.
+ * @param trustedOrigins - plain-HTTP origins the login browser may open, beyond loopback.
  * @returns account operations; watch callers own their subscriptions.
  */
-export function desktopAccountBackend(origin: string, invoke: AccountInvoke, cookie: string): DesktopAccountBackend {
+export function desktopAccountBackend(
+  origin: string, invoke: AccountInvoke, cookie: string, trustedOrigins: readonly string[] = [],
+): DesktopAccountBackend {
   const call = async (method: string, args: Record<string, unknown> = {}): Promise<AccountView> =>
-    accountView(await invoke({ namespace: 'account', method, args }))
+    accountView(await invoke({ namespace: 'account', method, args }), trustedOrigins)
   return {
     state: () => call('getState'),
     start: client => call('startSignIn', { client, callbackOrigin: new URL(origin).origin, loginSource: 'desktop' }),
@@ -117,7 +133,7 @@ export function desktopAccountBackend(origin: string, invoke: AccountInvoke, coo
             }
             if (frame.streamId === expiryStreamId && frame.type === 'item' && frame.value === 'session-expired') { expired(); return }
             if (frame.streamId !== streamId) throw new Error('desktop account: unexpected stream')
-            if (frame.type === 'item') listener(accountView(frame.value))
+            if (frame.type === 'item') listener(accountView(frame.value, trustedOrigins))
             else socket?.close()
           } catch { socket?.close() }
         })

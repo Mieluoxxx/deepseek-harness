@@ -1,7 +1,9 @@
 {
   "enabled": false,
-  "bundledPluginsDir": "plugins",
+  "bundles": [],
+  "allowSkipLogin": true,
   "controlPlaneUrl": "http://127.0.0.1:4320",
   "enterpriseModelProvider": "siriusx",
+  "bundledPluginsDir": "plugins",
   "plugins": []
 }

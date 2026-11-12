@@ -39,12 +39,14 @@ function record(value: unknown): value is Record<string, unknown> {
  * @param hostUrl - URL of the running Desktop Host; only its origin is used.
  * @param cookie - Cookie header returned by `authenticateWebHost` for this Host.
  * @param send - HTTP client for Host requests.
+ * @param trustedOrigins - plain-HTTP origins the login browser may open, beyond loopback.
  * @returns metadata reads and write-only credential operations over standard RPC.
  */
 export function connectDesktopWelcome(
   hostUrl: string,
   cookie: string,
   send: (input: string, init?: RequestInit) => Promise<Response> = fetch,
+  trustedOrigins: readonly string[] = [],
 ): DesktopWelcomeBackend {
   const origin = new URL(hostUrl).origin
   const invoke = async (
@@ -66,7 +68,7 @@ export function connectDesktopWelcome(
     }
     return envelope.result.value
   }
-  const account = desktopAccountBackend(origin, invoke, cookie)
+  const account = desktopAccountBackend(origin, invoke, cookie, trustedOrigins)
   const settingsAndReference = async () => {
     const settings = await invoke({ namespace: 'settings', method: 'describe', args: {} })
     if (!record(settings) || !Array.isArray(settings.namespaces)) throw new Error('desktop welcome: missing settings namespaces')
